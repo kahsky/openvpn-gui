@@ -22,7 +22,8 @@ import threading
 import gi
 
 gi.require_version("Gtk", "3.0")
-from gi.repository import Gtk, GdkPixbuf, GLib, Pango
+gi.require_version("Gdk", "3.0")
+from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 
 from . import credentials as cred_store
 from . import config
@@ -134,11 +135,13 @@ _CSS = """
 def _apply_css():
     provider = Gtk.CssProvider()
     provider.load_from_data(_CSS.encode("utf-8"))
-    Gtk.StyleContext.add_provider_for_screen(
-        Gtk.Gdk.Screen.get_default(),
-        provider,
-        Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
-    )
+    screen = Gdk.Screen.get_default()
+    if screen:
+        Gtk.StyleContext.add_provider_for_screen(
+            screen,
+            provider,
+            Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION,
+        )
 
 
 # ── Helper: load SVG as pixbuf at a given size ─────────────────────────────── #
@@ -813,6 +816,12 @@ class MainWindow(Gtk.ApplicationWindow):
     def show_and_raise(self):
         self.show_all()
         self.present()
+        # Force the window to the top on X11/Cinnamon (focus-stealing prevention
+        # can block present() alone).
+        gdk_win = self.get_window()
+        if gdk_win:
+            gdk_win.raise_()
+            gdk_win.focus(Gdk.CURRENT_TIME)
 
     # ── Dialogs ───────────────────────────────────────────────────────────── #
 

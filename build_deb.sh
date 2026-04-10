@@ -22,7 +22,7 @@ step()    { echo -e "\n${BOLD}▶ $*${NC}"; }
 # ── Configuration ───────────────────────────────────────────────────────── #
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PKG_NAME="openvpn-gui"
-VERSION="1.0.0"
+VERSION="1.0.1"
 ARCH="all"
 MAINTAINER="Karl <kahsky@book>"
 DESCRIPTION_SHORT="Client OpenVPN graphique pour Linux Mint / Ubuntu"

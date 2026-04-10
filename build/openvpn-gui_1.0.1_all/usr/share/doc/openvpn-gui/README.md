@@ -36,35 +36,64 @@ A modern, secure, GTK3-based OpenVPN client for Linux Mint 22.x / Ubuntu 24.x.
 | Python | 3.10+ |
 | NetworkManager | any recent |
 
-## Installation
+---
+
+## Installation (recommended — via .deb)
+
+### Method 1 — download the pre-built package
 
 ```bash
-git clone https://github.com/youruser/openvpn-gui.git
-cd openvpn-gui
-sudo ./install.sh
+# Download the latest release
+wget https://dukiwi.com/repo/openvpn-gui/openvpn-gui_1.0.1_all.deb
+
+# Install (apt resolves all dependencies automatically)
+sudo apt install ./openvpn-gui_1.0.1_all.deb
 ```
 
-The installer will:
-1. Install all system packages (`python3-gi`, `network-manager-openvpn`, AppIndicator3, etc.)
-2. Install Python packages (`keyring`, `secretstorage`)
-3. Copy the app to `/opt/openvpn-gui/`
-4. Create a `/usr/local/bin/openvpn-gui` launcher
-5. Add a `.desktop` entry (shows up in the application menu)
-6. Optionally configure autostart at login
+> **All packages directory:** https://dukiwi.com/repo/index.php?path=openvpn-gui
+
+### Method 2 — build the .deb yourself from source
+
+```bash
+git clone https://github.com/kahsky/openvpn-gui.git
+cd openvpn-gui
+
+# Build the .deb (no root required)
+./build_deb.sh
+
+# Install (apt handles all dependencies)
+sudo apt install ./build/openvpn-gui_1.0.1_all.deb
+```
+
+Or build and install in one step:
+
+```bash
+./build_deb.sh --install
+```
+
+### Uninstall
+
+```bash
+sudo apt remove openvpn-gui
+# Full purge (removes config too):
+sudo apt purge openvpn-gui
+```
+
+---
 
 ## Running without installing
 
 ```bash
 # Install system deps
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 \
-     network-manager-openvpn gir1.2-ayatanaappindicator3-0.1
+     network-manager-openvpn gir1.2-ayatanaappindicator3-0.1 \
+     python3-keyring python3-secretstorage
 
-# Install Python deps
-pip3 install --user keyring secretstorage
-
-# Run
+# Run directly
 ./openvpn-gui
 ```
+
+---
 
 ## Usage
 
@@ -72,6 +101,8 @@ pip3 install --user keyring secretstorage
 2. **Enter credentials** — type your username and password. Tick "Remember credentials" to save them securely in the system keyring.
 3. **Connect** — click **CONNECT**. The tray icon turns green when the tunnel is up.
 4. **Disconnect** — click **DISCONNECT** or right-click the tray icon → Disconnect.
+
+---
 
 ## Architecture
 
@@ -91,11 +122,33 @@ assets/
 └── icon_app.svg            — Blue shield   (app / taskbar)
 ```
 
+**Build script:**
+
+```
+build_deb.sh  — builds a self-contained .deb with all metadata
+                works as regular user (fakeroot) or as root
+```
+
+---
+
 ## Security notes
 
 - Credentials are stored **exclusively** in the system keyring (libsecret / GNOME Keyring).
 - When connecting, the password is piped to `nmcli` via **stdin** — it is never written to disk or to a temp file.
 - VPN profiles are managed by NetworkManager, stored in `/etc/NetworkManager/system-connections/` with root-only read permissions.
+
+---
+
+## Releases
+
+Pre-built `.deb` packages are available at:
+**https://dukiwi.com/repo/index.php?path=openvpn-gui**
+
+| Version | Download |
+|---|---|
+| 1.0.1 | [openvpn-gui_1.0.1_all.deb](https://dukiwi.com/repo/openvpn-gui/openvpn-gui_1.0.1_all.deb) |
+
+---
 
 ## License
 

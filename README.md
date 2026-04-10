@@ -44,10 +44,10 @@ A modern, secure, GTK3-based OpenVPN client for Linux Mint 22.x / Ubuntu 24.x.
 
 ```bash
 # Download the latest release
-wget https://dukiwi.com/repo/openvpn-gui/openvpn-gui_1.0.0_all.deb
+wget https://dukiwi.com/repo/openvpn-gui/openvpn-gui_1.0.1_all.deb
 
 # Install (apt resolves all dependencies automatically)
-sudo apt install ./openvpn-gui_1.0.0_all.deb
+sudo apt install ./openvpn-gui_1.0.1_all.deb
 ```
 
 > **All packages directory:** https://dukiwi.com/repo/index.php?path=openvpn-gui
@@ -62,7 +62,7 @@ cd openvpn-gui
 ./build_deb.sh
 
 # Install (apt handles all dependencies)
-sudo apt install ./build/openvpn-gui_1.0.0_all.deb
+sudo apt install ./build/openvpn-gui_1.0.1_all.deb
 ```
 
 Or build and install in one step:
@@ -146,7 +146,7 @@ Pre-built `.deb` packages are available at:
 
 | Version | Download |
 |---|---|
-| 1.0.0 | [openvpn-gui_1.0.0_all.deb](https://dukiwi.com/repo/openvpn-gui/openvpn-gui_1.0.0_all.deb) |
+| 1.0.1 | [openvpn-gui_1.0.1_all.deb](https://dukiwi.com/repo/openvpn-gui/openvpn-gui_1.0.1_all.deb) |
 
 ---
 

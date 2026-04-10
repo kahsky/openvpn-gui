@@ -18,23 +18,18 @@ ICON_CONNECTED = os.path.join(_ASSETS, "icon_connected.svg")
 ICON_DISCONNECTED = os.path.join(_ASSETS, "icon_disconnected.svg")
 
 # ── Try loading AppIndicator3 (preferred) ─────────────────────────────────── #
+# Try Ayatana fork first (Ubuntu 22+ / Mint 21+), then legacy AppIndicator3.
 _AppIndicator3 = None
-_IndicatorStatus = None
-_IndicatorCategory = None
 
-for _mod_name in ("AyatanaAppIndicator3", "AppIndicator3"):
+try:
+    gi.require_version("AyatanaAppIndicator3", "0.1")
+    from gi.repository import AyatanaAppIndicator3 as _AppIndicator3  # type: ignore
+except (ValueError, ImportError):
     try:
-        gi.require_version(_mod_name, "0.1")
-        from gi.repository import AyatanaAppIndicator3 as _mod  # type: ignore
-        _AppIndicator3 = _mod
-        break
+        gi.require_version("AppIndicator3", "0.1")
+        from gi.repository import AppIndicator3 as _AppIndicator3  # type: ignore
     except (ValueError, ImportError):
-        try:
-            from gi.repository import AppIndicator3 as _mod  # type: ignore
-            _AppIndicator3 = _mod
-            break
-        except (ValueError, ImportError):
-            pass
+        _AppIndicator3 = None  # fallback: GtkStatusIcon
 
 
 class TrayIcon:
