@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=OpenVPN GUI
+GenericName=Client VPN
+Comment=Client OpenVPN graphique pour Linux Mint / Ubuntu
+Exec=/usr/bin/openvpn-gui
+Icon=openvpn-gui
+Terminal=false
+Type=Application
+Categories=Network;Security;
+Keywords=vpn;openvpn;reseau;securite;
+StartupNotify=false

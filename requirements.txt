@@ -1,0 +1,4 @@
+# Python package dependencies (installed via pip)
+# System GTK/GObject packages are handled by install.sh
+keyring>=24.0
+secretstorage>=3.3   # keyring backend on Linux (GNOME Keyring / Secret Service)

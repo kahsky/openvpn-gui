@@ -1,0 +1,16 @@
+#!/bin/sh
+set -e
+chmod 755 /opt/openvpn-gui/openvpn-gui
+chmod 755 /usr/bin/openvpn-gui
+if command -v gtk-update-icon-cache >/dev/null 2>&1; then
+    gtk-update-icon-cache -f -t /usr/share/icons/hicolor || true
+fi
+if command -v update-desktop-database >/dev/null 2>&1; then
+    update-desktop-database /usr/share/applications || true
+fi
+echo ""
+echo "  OpenVPN GUI installe avec succes !"
+echo "  Lancez :  openvpn-gui"
+echo "  Ou via le menu Applications > Internet"
+echo ""
+exit 0
