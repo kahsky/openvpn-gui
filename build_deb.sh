@@ -3,8 +3,9 @@
 #  build_deb.sh — Construit le paquet .deb pour OpenVPN GUI
 #
 #  Usage :
-#    ./build_deb.sh              # construit seulement
-#    ./build_deb.sh --install    # construit ET installe avec apt
+#    ./build_deb.sh                    # construit seulement
+#    ./build_deb.sh --install          # construit ET installe avec apt
+#    ./build_deb.sh --stage-only DIR   # prépare l'arborescence dans DIR (pour build_rpm.sh)
 #
 #  Prérequis : dpkg-deb + fakeroot  (installés ci-dessous si absents)
 # ============================================================
@@ -40,7 +41,15 @@ PKG_DIR="${BUILD_ROOT}/${PKG_NAME}_${VERSION}_${ARCH}"
 DEB_OUT="${BUILD_ROOT}/${PKG_NAME}_${VERSION}_${ARCH}.deb"
 
 DO_INSTALL=false
-[[ "${1:-}" == "--install" ]] && DO_INSTALL=true
+STAGE_ONLY=""
+case "${1:-}" in
+    --install)    DO_INSTALL=true ;;
+    --stage-only) STAGE_ONLY="${2:?--stage-only : dossier de destination requis}" ;;
+esac
+# --stage-only <dir> : prépare seulement l'arborescence (utilisé par build_rpm.sh), sans DEBIAN/ ni .deb
+if [[ -n "$STAGE_ONLY" ]]; then
+    PKG_DIR="$STAGE_ONLY"
+fi
 
 # ── Vérifications / installation des outils de build ─────────────────────── #
 step "Vérifications"
@@ -92,7 +101,9 @@ rm -rf "${PKG_DIR}" 2>/dev/null || {
     warn "Anciens fichiers root dans build/ — suppression avec sudo…"
     sudo rm -rf "${PKG_DIR}"
 }
-rm -f "${DEB_OUT}" 2>/dev/null || sudo rm -f "${DEB_OUT}"
+if [[ -z "$STAGE_ONLY" ]]; then
+    rm -f "${DEB_OUT}" 2>/dev/null || sudo rm -f "${DEB_OUT}"
+fi
 
 # ── Arborescence du paquet ────────────────────────────────────────────────── #
 APP_DIR="${PKG_DIR}/opt/${PKG_NAME}"
@@ -174,6 +185,12 @@ chmod 755 "${APP_DIR}/openvpn-gui"
 chmod 755 "${BIN_DIR}/openvpn-gui"
 
 success "Permissions OK."
+
+if [[ -n "$STAGE_ONLY" ]]; then
+    rm -rf "${DEBIAN_DIR}"
+    success "Arborescence préparée dans ${PKG_DIR} (mode --stage-only)."
+    exit 0
+fi
 
 # ── Calcul de la taille installée ────────────────────────────────────────── #
 INSTALLED_SIZE=$(du -sk "${PKG_DIR}" | awk '{print $1}')

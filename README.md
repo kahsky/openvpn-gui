@@ -1,6 +1,6 @@
 # OpenVPN GUI — by Dukiwi
 
-A modern, secure, GTK3-based OpenVPN client for **Linux Mint 22** and **Ubuntu 24.04+**,
+A modern, secure, GTK3-based OpenVPN client for **Linux Mint 22**, **Ubuntu 24.04+** and **Fedora 40+**,
 created by **[Dukiwi](https://dukiwi.com)** and styled in Dukiwi blue (`#013861`).
 Define the server yourself (host, port, user, password), watch a live traffic view once connected,
 and follow exactly what happens during the connection with the verbose log.
@@ -24,33 +24,48 @@ sudo apt update && sudo apt install -y openvpn-gui
 
 Updates then arrive through the Mint Update Manager or Ubuntu Software, like any other package.
 
+### Fedora 40+ (and derivatives: Nobara, Ultramarine…) — signed dnf repository
+
+```bash
+sudo curl -fsSL -o /etc/yum.repos.d/dukiwi-clamav.repo https://www.dukiwi.com/repo/rpm/dukiwi-clamav.repo
+sudo rpm --import https://www.dukiwi.com/repo/rpm/dukiwi-clamav.asc
+sudo dnf install openvpn-gui
+```
+
+Signed `noarch` RPM, signed repository metadata, same Dukiwi key as the APT repository. Under GNOME the
+tray icon needs the AppIndicator extension (`gnome-shell-extension-appindicator`, recommended by the
+package). Updates then arrive through dnf or GNOME Software.
+
 ### Direct download
 
 - Mint / Ubuntu: [openvpn-gui_1.1.0_all.deb](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui_1.1.0_all.deb)
+- Fedora: [openvpn-gui-1.1.0-1.noarch.rpm](https://www.dukiwi.com/repo/rpm/fedora/noarch/openvpn-gui-1.1.0-1.noarch.rpm)
 - All versions: [www.dukiwi.com/repo/openvpn-gui](https://www.dukiwi.com/repo/index.php?path=openvpn-gui)
 
 ### Install a downloaded package by hand
 
 ```bash
-sudo apt install ./openvpn-gui_1.1.0_all.deb     # apt resolves all dependencies
+sudo apt install ./openvpn-gui_1.1.0_all.deb           # Mint / Ubuntu — apt resolves all dependencies
+sudo dnf install ./openvpn-gui-1.1.0-1.noarch.rpm      # Fedora
 ```
 
-### Build the .deb yourself from source
+### Build the packages yourself from source
 
 ```bash
 git clone https://github.com/kahsky/openvpn-gui.git
 cd openvpn-gui
-./build_deb.sh              # no root required (fakeroot)
+./build_deb.sh              # .deb, no root required (fakeroot)
+./build_rpm.sh              # .rpm (needs rpmbuild: sudo apt install rpm — works from Mint/Ubuntu too)
 sudo apt install ./build/openvpn-gui_1.1.0_all.deb
-# or build and install in one step:
+# or build and install the .deb in one step:
 ./build_deb.sh --install
 ```
 
 ### Uninstall
 
 ```bash
-sudo apt remove openvpn-gui
-sudo apt purge openvpn-gui      # also removes the configuration
+sudo apt remove openvpn-gui     # Mint / Ubuntu  (apt purge also removes the configuration)
+sudo dnf remove openvpn-gui     # Fedora
 ```
 
 ---
@@ -74,7 +89,10 @@ sudo apt purge openvpn-gui      # also removes the configuration
   datacenter, each client site…) keeps one profile per network in the sidebar and switches between
   them with a click. Each profile has its own server settings and credentials, and several tunnels
   can be up at the same time; the tray icon lists the connected ones.
-- **NetworkManager integration** — uses `nmcli` under the hood; no root password prompts.
+- **NetworkManager integration** — uses `nmcli` under the hood. Profiles you import or create belong to
+  your user (NetworkManager `connection.permissions`), so editing them never needs an admin password.
+  On Mint/Ubuntu nothing is ever asked; on Fedora only the very first `.ovpn` import triggers one
+  polkit prompt, because importing creates a system-wide connection before it is handed to you.
 - **System tray icon** — blue shield when connected, pulsing navy while connecting, grey when disconnected.
 - **Minimize to tray**, **English / French** interface (follows your locale).
 
@@ -106,8 +124,9 @@ NetworkManager profile when you leave a field or press **CONNECT**.
 |---|---|
 | Linux Mint | 21.x / 22.x |
 | Ubuntu | 22.04 / 24.04 / 26.04 |
+| Fedora | 40+ (Nobara, Ultramarine and other derivatives) |
 | Python | 3.10+ |
-| NetworkManager + network-manager-openvpn | any recent |
+| NetworkManager + OpenVPN plugin | any recent (`network-manager-openvpn` / `NetworkManager-openvpn`) |
 
 > The verbose log reads the system journal. To see NetworkManager / OpenVPN lines your user must
 > be in the `adm` or `systemd-journal` group (default for the first user on Mint/Ubuntu).
@@ -117,14 +136,20 @@ NetworkManager profile when you leave a field or press **CONNECT**.
 ## Running without installing
 
 ```bash
-# Install system deps
+# Mint / Ubuntu
 sudo apt install python3-gi python3-gi-cairo gir1.2-gtk-3.0 \
      network-manager-openvpn gir1.2-ayatanaappindicator3-0.1 \
      python3-keyring python3-secretstorage iproute2
+# Fedora
+sudo dnf install python3-gobject python3-cairo gtk3 NetworkManager-openvpn \
+     libayatana-appindicator-gtk3 python3-keyring python3-secretstorage iproute
 
 # Run directly
 ./openvpn-gui
 ```
+
+`sudo ./install.sh` does the same from the sources (apt or dnf detected automatically), but the
+packages above are the recommended way: they bring automatic updates.
 
 ---
 
@@ -169,7 +194,9 @@ assets/
 └── logo_dukiwi.png         — Dukiwi word-mark (sidebar footer, About box)
 
 openvpn-gui.png   — README hero image (served from https://www.dukiwi.com/repo/openvpn-gui/)
-build_deb.sh      — builds a self-contained .deb (fakeroot or root)
+build_deb.sh      — builds a self-contained .deb (fakeroot or root); --stage-only DIR prepares the file tree
+build_rpm.sh      — builds the noarch .rpm from the same tree (openvpn-gui.spec), from any distribution
+install.sh        — installs from the sources with apt or dnf (alternative to the packages)
 ```
 
 ---
@@ -195,8 +222,8 @@ build_deb.sh      — builds a self-contained .deb (fakeroot or root)
 - VPN profiles are managed by NetworkManager, stored in `/etc/NetworkManager/system-connections/`
   with root-only read permissions. CA certificates of manual profiles are copied to
   `~/.cert/nm-openvpn/` (mode 600), like nmcli's own importer does.
-- Packages are signed: the APT repository index is signed with the Dukiwi key, and each `.deb` in
-  the repository comes with a `.sha256` file and a signed `manifest.json`.
+- Packages are signed: the APT repository index, the RPM and the dnf repository metadata are signed
+  with the Dukiwi key, and each package in the repository comes with a `.sha256` file and a signed `manifest.json`.
 
 ---
 
@@ -207,7 +234,7 @@ Pre-built `.deb` packages are available at:
 
 | Version | Download | Highlights |
 |---|---|---|
-| 1.1.0 | [openvpn-gui_1.1.0_all.deb](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui_1.1.0_all.deb) | Manual host/port/user/password, live traffic view, connection animation + verbose log, Dukiwi theme, French UI, APT repository |
+| 1.1.0 | [openvpn-gui_1.1.0_all.deb](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui_1.1.0_all.deb) · [openvpn-gui-1.1.0-1.noarch.rpm](https://www.dukiwi.com/repo/rpm/fedora/noarch/openvpn-gui-1.1.0-1.noarch.rpm) | Manual host/port/user/password, live traffic view, connection animation + verbose log, Dukiwi theme, French UI, APT and dnf repositories (Mint, Ubuntu, Fedora) |
 | 1.0.1 | [openvpn-gui_1.0.1_all.deb](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui_1.0.1_all.deb) | Initial release |
 
 ---

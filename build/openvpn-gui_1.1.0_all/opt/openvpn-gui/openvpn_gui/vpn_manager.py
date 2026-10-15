@@ -8,6 +8,7 @@ Verbose logging: every command the manager runs (and its result) is sent to
 the optional logger callback  log(level, message)  so the GUI can show
 exactly what is happening.  Passwords are never logged.
 """
+import getpass
 import os
 import re
 import shlex
@@ -140,10 +141,35 @@ class VPNManager:
             output = stdout.strip()
             # nmcli prints: Connection 'name' (uuid) successfully added.
             if "'" in output:
-                return True, output.split("'")[1]
-            return True, os.path.splitext(os.path.basename(filepath))[0]
+                name = output.split("'")[1]
+            else:
+                name = os.path.splitext(os.path.basename(filepath))[0]
+            self.set_owner(name)
+            return True, name
         err = stderr.strip() or stdout.strip()
         return False, err or "Failed to import config"
+
+    @staticmethod
+    def _owner() -> str:
+        try:
+            return getpass.getuser()
+        except Exception:
+            return ""
+
+    def set_owner(self, profile_name: str) -> bool:
+        """
+        Restrict the profile to the current user (connection.permissions).
+        A user-owned profile only needs the 'modify.own' polkit permission, so later
+        edits (host, port, username, cached secrets) never ask for an admin password —
+        this matters on Fedora, where system-wide changes require authentication.
+        """
+        user = self._owner()
+        if not user:
+            return False
+        rc, _, _ = self._run(
+            ["nmcli", "connection", "modify", profile_name, "connection.permissions", f"user:{user}"]
+        )
+        return rc == 0
 
     def create_manual_profile(
         self,
@@ -196,13 +222,15 @@ class VPNManager:
                 return False, f"Could not copy CA certificate: {exc}"
 
         vpn_data = ", ".join(f"{k}={v}" for k, v in data.items())
-        rc, stdout, stderr = self._run(
-            [
-                "nmcli", "connection", "add", "type", "vpn", "vpn-type", "openvpn",
-                "con-name", name, "connection.autoconnect", "no",
-                "vpn.data", vpn_data,
-            ]
-        )
+        cmd = [
+            "nmcli", "connection", "add", "type", "vpn", "vpn-type", "openvpn",
+            "con-name", name, "connection.autoconnect", "no",
+        ]
+        if self._owner():
+            # user-owned profile: creatable and editable with 'modify.own' only (no admin prompt)
+            cmd += ["connection.permissions", f"user:{self._owner()}"]
+        cmd += ["vpn.data", vpn_data]
+        rc, stdout, stderr = self._run(cmd)
         if rc == 0:
             return True, name
         return False, (stderr.strip() or stdout.strip() or "Failed to create profile")

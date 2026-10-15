@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # ============================================================
-#  OpenVPN GUI — Installer for Linux Mint 22.x / Ubuntu 24.x
+#  OpenVPN GUI — Installer for Linux Mint 22.x / Ubuntu 24.x / Fedora 40+
+#  (prefer the .deb / .rpm packages from https://www.dukiwi.com/repo when possible)
 # ============================================================
 set -euo pipefail
 
@@ -32,7 +33,21 @@ echo -e "${CYAN}║    OpenVPN GUI Installer — by Dukiwi  ║${NC}"
 echo -e "${CYAN}╚═══════════════════════════════════════╝${NC}"
 echo ""
 
-# ── System packages ───────────────────────────────────────────────────────── #
+# ── Fedora / RHEL family: dnf ────────────────────────────────────────────── #
+if command -v dnf &>/dev/null && [[ -f /etc/fedora-release || -f /etc/redhat-release ]]; then
+    info "Fedora family detected — installing dependencies with dnf…"
+    dnf install -y python3 python3-gobject python3-cairo gtk3 gdk-pixbuf2 \
+        NetworkManager NetworkManager-openvpn openvpn python3-keyring python3-secretstorage \
+        iproute libayatana-appindicator-gtk3 > /dev/null
+    dnf install -y gnome-shell-extension-appindicator gnome-keyring > /dev/null 2>&1 || true
+    success "System packages installed (dnf)."
+    SKIP_APT=true
+else
+    SKIP_APT=false
+fi
+
+# ── System packages (Debian / Ubuntu / Mint: apt) ─────────────────────────── #
+if ! $SKIP_APT; then
 info "Installing system dependencies…"
 
 apt-get update -qq
@@ -72,6 +87,7 @@ info "Installing Python packages…"
 pip3 install --quiet --break-system-packages keyring secretstorage 2>/dev/null \
     || pip3 install --quiet keyring secretstorage
 success "Python packages installed."
+fi
 
 # ── Copy application files ────────────────────────────────────────────────── #
 info "Installing OpenVPN GUI to ${INSTALL_DIR}…"
@@ -108,6 +124,7 @@ Keywords=vpn;openvpn;network;security;
 StartupNotify=false
 EOF
 success "Desktop entry created."
+command -v restorecon &>/dev/null && restorecon -R "$INSTALL_DIR" &>/dev/null || true
 
 # ── Autostart (optional) ──────────────────────────────────────────────────── #
 read -rp "$(echo -e "${CYAN}[?]${NC}    Start OpenVPN GUI at login? [y/N]: ")" AUTOSTART
