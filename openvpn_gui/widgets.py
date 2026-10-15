@@ -202,6 +202,7 @@ class ConnectAnimation(Gtk.DrawingArea):
         mode = self._mode
         mt = t - self._mode_t   # time since mode change
 
+        cr.new_path()
         # Sonar rings (expanding, fading)
         if mode == "connecting":
             for k in range(3):
@@ -374,6 +375,9 @@ class StepIndicator(Gtk.DrawingArea):
         for i, x in enumerate(xs):
             done = i < self._current or self._done_all
             active = (i == self._current) and not self._done_all
+            # Start every dot from a clean path: cairo's arc() would otherwise draw a
+            # line from the current point (left by the previous label) to the circle.
+            cr.new_path()
             if self._failed and active:
                 cr.set_source_rgba(*red, 1)
                 cr.arc(x, y, 6, 0, 2 * math.pi)
@@ -427,6 +431,7 @@ class StepIndicator(Gtk.DrawingArea):
             lx = min(max(x - tw / 2, 2), max(W - tw - 2, 2))
             cr.move_to(lx, y + 14)
             PangoCairo.show_layout(cr, layout)
+            cr.new_path()
         return False
 
 

@@ -89,7 +89,10 @@ sudo dnf remove openvpn-gui     # Fedora
   datacenter, each client site…) keeps one profile per network in the sidebar and switches between
   them with a click. Each profile has its own server settings and credentials, and several tunnels
   can be up at the same time; the tray icon lists the connected ones.
-- **NetworkManager integration** — uses `nmcli` under the hood; no root password prompts.
+- **NetworkManager integration** — uses `nmcli` under the hood. Profiles you import or create belong to
+  your user (NetworkManager `connection.permissions`), so editing them never needs an admin password.
+  On Mint/Ubuntu nothing is ever asked; on Fedora only the very first `.ovpn` import triggers one
+  polkit prompt, because importing creates a system-wide connection before it is handed to you.
 - **System tray icon** — blue shield when connected, pulsing navy while connecting, grey when disconnected.
 - **Minimize to tray**, **English / French** interface (follows your locale).
 

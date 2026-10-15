@@ -5,7 +5,7 @@ created by **[Dukiwi](https://dukiwi.com)** and styled in Dukiwi blue (`#013861`
 Define the server yourself (host, port, user, password), watch a live traffic view once connected,
 and follow exactly what happens during the connection with the verbose log.
 
-![OpenVPN GUI by Dukiwi — one profile per network, connection steps with verbose log, live traffic view](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui.png?v=63412955)
+![OpenVPN GUI by Dukiwi — one profile per network, connection steps with verbose log, live traffic view](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui.png?v=92691048)
 
 ## Installation
 
