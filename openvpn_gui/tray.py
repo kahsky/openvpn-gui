@@ -10,12 +10,15 @@ import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk
 
+from .i18n import _
+
 # Resolve asset paths relative to this package
 _ASSETS = os.path.join(
     os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "assets"
 )
 ICON_CONNECTED = os.path.join(_ASSETS, "icon_connected.svg")
 ICON_DISCONNECTED = os.path.join(_ASSETS, "icon_disconnected.svg")
+ICON_CONNECTING = os.path.join(_ASSETS, "icon_connecting.svg")
 
 # ── Try loading AppIndicator3 (preferred) ─────────────────────────────────── #
 # Try Ayatana fork first (Ubuntu 22+ / Mint 21+), then legacy AppIndicator3.
@@ -64,7 +67,7 @@ class TrayIcon:
     def _setup_status_icon(self):
         self._si = Gtk.StatusIcon()
         self._si.set_from_file(ICON_DISCONNECTED)
-        self._si.set_tooltip_text("OpenVPN GUI — Disconnected")
+        self._si.set_tooltip_text("OpenVPN GUI — " + _("Disconnected"))
         self._si.set_visible(True)
         self._si.connect("activate", lambda _: self._on_show())
         self._si.connect("popup-menu", self._si_popup)
@@ -75,24 +78,24 @@ class TrayIcon:
         menu = Gtk.Menu()
 
         # App title (non-interactive)
-        title = Gtk.MenuItem(label="OpenVPN GUI")
+        title = Gtk.MenuItem(label="OpenVPN GUI · Dukiwi")
         title.set_sensitive(False)
         menu.append(title)
         menu.append(Gtk.SeparatorMenuItem())
 
         # Dynamic connect / disconnect item
-        self._menu_toggle = Gtk.MenuItem(label="Connect")
+        self._menu_toggle = Gtk.MenuItem(label=_("Connect"))
         self._menu_toggle.connect("activate", self._on_toggle)
         menu.append(self._menu_toggle)
 
         # Open window
-        open_item = Gtk.MenuItem(label="Open")
+        open_item = Gtk.MenuItem(label=_("Open"))
         open_item.connect("activate", lambda _: self._on_show())
         menu.append(open_item)
 
         menu.append(Gtk.SeparatorMenuItem())
 
-        quit_item = Gtk.MenuItem(label="Quit")
+        quit_item = Gtk.MenuItem(label=_("Quit"))
         quit_item.connect("activate", lambda _: self._on_quit())
         menu.append(quit_item)
 
@@ -121,18 +124,25 @@ class TrayIcon:
         self._active_profile = profile_name
 
         icon = ICON_CONNECTED if connected else ICON_DISCONNECTED
-        label = "Disconnect" if connected else "Connect"
+        label = _("Disconnect") if connected else _("Connect")
         tip = (
-            f"OpenVPN GUI — Connected to {profile_name}"
+            "OpenVPN GUI — " + _("Connected to {name}").format(name=profile_name)
             if connected
-            else "OpenVPN GUI — Disconnected"
+            else "OpenVPN GUI — " + _("Disconnected")
         )
+        self._apply(icon, label, tip, "VPN Connected" if connected else "VPN Disconnected")
 
+    def set_connecting(self, profile_name: str = ""):
+        """Show the 'connecting' (pulsing navy) icon while a tunnel comes up."""
+        self._connected = False
+        self._active_profile = profile_name
+        tip = "OpenVPN GUI — " + _("Connecting to {name}…").format(name=profile_name)
+        self._apply(ICON_CONNECTING, _("Cancel"), tip, "VPN Connecting")
+
+    def _apply(self, icon: str, label: str, tip: str, desc: str):
         if self._use_indicator:
-            self._ind.set_icon_full(
-                icon,
-                "VPN Connected" if connected else "VPN Disconnected",
-            )
+            self._ind.set_icon_full(icon, desc)
+            self._ind.set_title(tip)
             if hasattr(self, "_menu_toggle"):
                 self._menu_toggle.set_label(label)
         else:

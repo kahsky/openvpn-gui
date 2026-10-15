@@ -28,7 +28,7 @@ fi
 
 echo ""
 echo -e "${CYAN}╔═══════════════════════════════════════╗${NC}"
-echo -e "${CYAN}║       OpenVPN GUI Installer           ║${NC}"
+echo -e "${CYAN}║    OpenVPN GUI Installer — by Dukiwi  ║${NC}"
 echo -e "${CYAN}╚═══════════════════════════════════════╝${NC}"
 echo ""
 
@@ -49,6 +49,7 @@ PACKAGES=(
     openvpn
     libsecret-1-0
     libsecret-tools
+    iproute2
 )
 
 # AppIndicator: try Ayatana first (Ubuntu 22+/Mint 21+), then classic
@@ -97,7 +98,7 @@ cat > "$DESKTOP_FILE" << EOF
 [Desktop Entry]
 Name=OpenVPN GUI
 GenericName=VPN Client
-Comment=Manage OpenVPN connections with a modern GUI
+Comment=Manage OpenVPN connections with a modern GUI (by Dukiwi)
 Exec=$BIN_LINK
 Icon=openvpn-gui
 Terminal=false

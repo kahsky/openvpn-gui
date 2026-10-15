@@ -1,0 +1,4 @@
+#!/bin/sh
+set -e
+pkill -f "python3.*openvpn-gui" 2>/dev/null || true
+exit 0

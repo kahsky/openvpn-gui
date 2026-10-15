@@ -22,14 +22,18 @@ step()    { echo -e "\n${BOLD}▶ $*${NC}"; }
 # ── Configuration ───────────────────────────────────────────────────────── #
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PKG_NAME="openvpn-gui"
-VERSION="1.0.1"
+VERSION="1.1.0"
 ARCH="all"
 MAINTAINER="Karl <kahsky@book>"
-DESCRIPTION_SHORT="Client OpenVPN graphique pour Linux Mint / Ubuntu"
-DESCRIPTION_LONG=" Interface GTK3 moderne pour gérer des connexions OpenVPN.
- Importation de fichiers .ovpn, stockage sécurisé des identifiants
- dans le trousseau système (GNOME Keyring), icône dans la barre système
- (verte = connecté, grise = déconnecté) et intégration NetworkManager."
+DESCRIPTION_SHORT="Client OpenVPN graphique pour Linux Mint / Ubuntu (par Dukiwi)"
+DESCRIPTION_LONG=" Interface GTK3 moderne (couleurs Dukiwi) pour gérer des connexions OpenVPN.
+ Importation de fichiers .ovpn ou création manuelle (hôte, port, protocole,
+ utilisateur, mot de passe), stockage sécurisé des identifiants dans le
+ trousseau système (GNOME Keyring), animation et journal détaillé pendant
+ la connexion, vue du trafic en direct une fois connecté, icône dans la
+ barre système et intégration NetworkManager.
+ .
+ Application créée par Dukiwi — https://dukiwi.com"
 
 BUILD_ROOT="${SCRIPT_DIR}/build"
 PKG_DIR="${BUILD_ROOT}/${PKG_NAME}_${VERSION}_${ARCH}"
@@ -113,6 +117,8 @@ step "Copie des fichiers"
 
 cp -rp "${SCRIPT_DIR}/openvpn_gui" "${APP_DIR}/"
 cp -rp "${SCRIPT_DIR}/assets"      "${APP_DIR}/"
+# Ne jamais embarquer les caches Python du poste de build
+find "${APP_DIR}" -type d -name "__pycache__" -prune -exec rm -rf {} +
 cp  -p "${SCRIPT_DIR}/openvpn-gui" "${APP_DIR}/openvpn-gui"
 cp  -p "${SCRIPT_DIR}/assets/icon_app.svg" "${ICON_DIR}/openvpn-gui.svg"
 cp  -p "${SCRIPT_DIR}/README.md"   "${DOC_DIR}/README.md"  2>/dev/null || true
@@ -191,6 +197,7 @@ Depends: python3 (>= 3.10),
  network-manager-openvpn,
  openvpn,
  libsecret-1-0,
+ iproute2,
  python3-keyring,
  python3-secretstorage,
  gir1.2-ayatanaappindicator3-0.1 | gir1.2-appindicator3-0.1
@@ -199,7 +206,7 @@ Suggests: network-manager-openvpn-gnome
 Maintainer: ${MAINTAINER}
 Description: ${DESCRIPTION_SHORT}
 ${DESCRIPTION_LONG}
-Homepage: https://github.com/kahsky/openvpn-gui
+Homepage: https://dukiwi.com
 CONTROL
 
 success "control écrit."
