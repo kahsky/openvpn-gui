@@ -5,7 +5,7 @@ created by **[Dukiwi](https://dukiwi.com)** and styled in Dukiwi blue (`#013861`
 Define the server yourself (host, port, user, password), watch a live traffic view once connected,
 and follow exactly what happens during the connection with the verbose log.
 
-![OpenVPN GUI by Dukiwi — settings, connection animation with verbose log, live traffic view](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui.png?v=11000)
+![OpenVPN GUI by Dukiwi — one profile per network, connection steps with verbose log, live traffic view](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui.png?v=92732302)
 
 ## Installation
 
@@ -70,7 +70,10 @@ sudo apt purge openvpn-gui      # also removes the configuration
   wrong password is reported immediately (`AUTH_FAILED`) instead of after NetworkManager's 60 s timeout.
 - **One-click import** — browse for `.ovpn` config files.
 - **Secure credentials** — username & password stored in GNOME Keyring (never plain text on disk).
-- **Multiple profiles** — manage as many VPN profiles as you need.
+- **One profile per network** — a user who manages or has access to several networks (office,
+  datacenter, each client site…) keeps one profile per network in the sidebar and switches between
+  them with a click. Each profile has its own server settings and credentials, and several tunnels
+  can be up at the same time; the tray icon lists the connected ones.
 - **NetworkManager integration** — uses `nmcli` under the hood; no root password prompts.
 - **System tray icon** — blue shield when connected, pulsing navy while connecting, grey when disconnected.
 - **Minimize to tray**, **English / French** interface (follows your locale).

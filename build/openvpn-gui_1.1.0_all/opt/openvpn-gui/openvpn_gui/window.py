@@ -1266,14 +1266,9 @@ class MainWindow(Gtk.ApplicationWindow):
         if self._state != self._STATE_IDLE:
             return True
         profiles = self._vpn.get_profiles()
-        any_connected = False
-        connected_name = ""
-        for profile in profiles:
-            if profile["connected"]:
-                any_connected = True
-                connected_name = profile["name"]
-                break
-        self._tray.set_connected(any_connected, connected_name)
+        # Several tunnels can be up at once (one profile per network): list them all in the tray.
+        connected_names = [p["name"] for p in profiles if p["connected"]]
+        self._tray.set_connected(bool(connected_names), ", ".join(connected_names))
 
         if self._selected_profile:
             is_now = any(p["connected"] for p in profiles if p["name"] == self._selected_profile)
