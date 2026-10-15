@@ -316,10 +316,14 @@ class VPNManager:
         ignores the one typed in the GUI.
         """
         rc, stdout, _ = self._run(
-            ["nmcli", "-g", "connection.uuid", "connection", "show", profile_name],
-            timeout=10, quiet=True,
+            ["nmcli", "-t", "-f", "NAME,UUID", "connection", "show"], timeout=10, quiet=True,
         )
-        uuid = stdout.strip()
+        uuid = ""
+        for line in stdout.splitlines():
+            name, _, u = line.rpartition(":")
+            if name == profile_name:
+                uuid = u.strip()
+                break
         if rc != 0 or not uuid:
             return False
         try:
@@ -350,7 +354,8 @@ class VPNManager:
             return False
 
     def connect(
-        self, profile_name: str, username: str = "", password: str = ""
+        self, profile_name: str, username: str = "", password: str = "",
+        clear_cached_secrets: bool = True,
     ) -> Tuple[bool, str]:
         """
         Connect to a VPN profile.
@@ -361,7 +366,8 @@ class VPNManager:
         cmd = ["nmcli", "--wait", "60", "connection", "up", profile_name]
         try:
             if username or password:
-                self.clear_secrets(profile_name)
+                if clear_cached_secrets:
+                    self.clear_secrets(profile_name)
                 creds = (
                     f"vpn.secrets.username:{username}\n"
                     f"vpn.secrets.password:{password}\n"

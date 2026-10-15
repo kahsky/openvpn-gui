@@ -95,6 +95,8 @@ _FR.update({
     "Could not save server settings: {msg}": "Impossible d'enregistrer le serveur : {msg}",
     "Please enter the server host before connecting.": "Veuillez saisir l'hôte du serveur avant de vous connecter.",
     "Credentials stored in the system keyring.": "Identifiants enregistrés dans le trousseau système.",
+    "Keyring error: {msg}": "Erreur du trousseau : {msg}",
+    "Same credentials as the last successful connection — NetworkManager's cached secrets are kept.": "Mêmes identifiants que la dernière connexion réussie — les secrets en cache de NetworkManager sont conservés.",
     # Connecting
     "Preparing": "Préparation",
     "Authenticating": "Authentification",

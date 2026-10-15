@@ -17,7 +17,9 @@ Layout:
   │                       │   [ CONNECT / CANCEL / DISCONNECT ]          │
   └───────────────────────┴──────────────────────────────────────────────┘
 """
+import hashlib
 import os
+import queue
 import re
 import threading
 import time
@@ -169,6 +171,12 @@ class MainWindow(Gtk.ApplicationWindow):
         self._poller = None
         self._sampler = None
         self._syncing_toggles = False
+        self._last_creds = {}        # profile → hash of credentials used for the last successful connect
+        self._creds_token = 0        # guards asynchronous keyring loads
+        # Single worker for NetworkManager writes (profile edits, connect): keeps the GTK thread
+        # responsive (polkit-gated nmcli calls take ~2 s) while preserving their order.
+        self._nm_queue = queue.Queue()
+        threading.Thread(target=self._nm_worker, daemon=True).start()
 
         self._vpn.set_logger(self._log_from_thread)
 
@@ -190,6 +198,19 @@ class MainWindow(Gtk.ApplicationWindow):
         pb = _svg_pixbuf("icon_app.svg", 64)
         if pb:
             self.set_icon(pb)
+
+    # ── Background NetworkManager worker ─────────────────────────────────── #
+
+    def _nm_worker(self):
+        while True:
+            job = self._nm_queue.get()
+            try:
+                job()
+            except Exception as exc:
+                self._log_from_thread("err", f"background task failed: {exc}")
+
+    def _enqueue(self, fn, *args):
+        self._nm_queue.put(lambda: fn(*args))
 
     # ── Logging helpers ──────────────────────────────────────────────────── #
 
@@ -700,21 +721,40 @@ class MainWindow(Gtk.ApplicationWindow):
             self._server_hint.set_text(
                 _("Saved to the NetworkManager profile when you leave a field or connect."))
 
-        # Credentials from keyring
+        # Credentials from keyring (asynchronous: Secret Service can take a second or two)
+        self._creds_token += 1
         if config.has_saved_creds(profile["name"]):
-            username, password = cred_store.load(profile["name"])
             self._loading = True
-            if username:
-                self._username_entry.set_text(username)
-            self._password_entry.set_text(password)
             self._remember_check.set_active(True)
             self._loading = False
+            threading.Thread(
+                target=self._bg_load_creds, args=(profile["name"], self._creds_token), daemon=True
+            ).start()
 
         if self._vpn.is_connected(profile["name"]):
             self._enter_connected_view()
         else:
             self._enter_form_view()
         self._detail_stack.set_visible_child_name("profile")
+
+    def _bg_load_creds(self, name: str, token: int):
+        try:
+            username, password = cred_store.load(name)
+        except Exception as exc:
+            self._log_from_thread("warn", _("Keyring error: {msg}").format(msg=exc))
+            return
+        GLib.idle_add(self._apply_loaded_creds, name, token, username, password)
+
+    def _apply_loaded_creds(self, name: str, token: int, username: str, password: str) -> bool:
+        if token != self._creds_token or self._selected_profile != name:
+            return False
+        self._loading = True
+        if username:
+            self._username_entry.set_text(username)
+        if password and not self._password_entry.get_text():
+            self._password_entry.set_text(password)
+        self._loading = False
+        return False
 
     def _update_server_label(self):
         host = self._host_entry.get_text().strip()
@@ -759,24 +799,32 @@ class MainWindow(Gtk.ApplicationWindow):
         if not host:
             return False
         self._settings_dirty = False
+        profile = self._selected_profile
         self._log_app(_("Saving server settings: {host}:{port} ({proto})").format(
             host=host, port=port, proto=proto.upper()))
-        ok, msg = self._vpn.set_remote(self._selected_profile, host, port, proto)
-        if not ok:
-            self._settings_dirty = True
-            self._show_error_bar(_("Could not save server settings: {msg}").format(msg=msg))
-            return False
-        row = self._row_for(self._selected_profile)
+        row = self._row_for(profile)
         if row:
             row.set_server(f"{host}:{port}")
+        self._enqueue(self._bg_save_settings, profile, host, port, proto)
         return True
+
+    def _bg_save_settings(self, profile: str, host: str, port: int, proto: str):
+        ok, msg = self._vpn.set_remote(profile, host, port, proto)
+        if not ok:
+            GLib.idle_add(self._on_save_settings_failed, profile, msg)
+
+    def _on_save_settings_failed(self, profile: str, msg: str) -> bool:
+        if self._selected_profile == profile:
+            self._settings_dirty = True
+            self._show_error_bar(_("Could not save server settings: {msg}").format(msg=msg))
+        return False
 
     def _save_username_if_dirty(self):
         if not self._username_dirty or not self._selected_profile:
             return
         self._username_dirty = False
         username = self._username_entry.get_text().strip()
-        self._vpn.set_username(self._selected_profile, username)
+        self._enqueue(self._vpn.set_username, self._selected_profile, username)
 
     # ── View states ──────────────────────────────────────────────────────── #
 
@@ -948,8 +996,9 @@ class MainWindow(Gtk.ApplicationWindow):
         dlg.destroy()
 
         if v["remember"] and (v["username"] or v["password"]):
-            cred_store.save(v["name"], v["username"], v["password"])
             config.mark_creds_saved(v["name"])
+            threading.Thread(target=cred_store.save, args=(v["name"], v["username"], v["password"]),
+                             daemon=True).start()
         self._refresh_profiles()
         self._select_profile_by_name(v["name"])
         if v["password"] and not v["remember"]:
@@ -1023,12 +1072,10 @@ class MainWindow(Gtk.ApplicationWindow):
 
         username = self._username_entry.get_text().strip()
         password = self._password_entry.get_text()
-        if self._remember_check.get_active() and (username or password):
-            cred_store.save(profile, username, password)
+        remember = self._remember_check.get_active()
+        if remember and (username or password):
             config.mark_creds_saved(profile)
-            self._log_app(_("Credentials stored in the system keyring."))
-        elif not self._remember_check.get_active():
-            cred_store.delete(profile)
+        elif not remember:
             config.unmark_creds_saved(profile)
 
         self._state = self._STATE_CONNECTING
@@ -1048,12 +1095,28 @@ class MainWindow(Gtk.ApplicationWindow):
         self._enter_connecting_view(host, port)
         self._steps.set_step(0)
 
-        threading.Thread(
-            target=self._bg_connect, args=(profile, username, password), daemon=True
-        ).start()
+        creds_hash = hashlib.sha256(f"{username}\0{password}".encode()).hexdigest()
+        clear_secrets = self._last_creds.get(profile) != creds_hash
+        self._pending_creds_hash = creds_hash
+        # Queued behind any pending profile edit so nmcli sees the new host/port first.
+        self._enqueue(self._bg_connect, profile, username, password, remember, clear_secrets)
 
-    def _bg_connect(self, profile: str, username: str, password: str):
-        ok, msg = self._vpn.connect(profile, username, password)
+    def _bg_connect(self, profile: str, username: str, password: str, remember: bool,
+                    clear_secrets: bool):
+        # Keyring access can block for a while (unlock prompt, slow Secret Service):
+        # keep it off the GTK main thread.
+        try:
+            if remember and (username or password):
+                cred_store.save(profile, username, password)
+                self._log_from_thread("info", _("Credentials stored in the system keyring."))
+            elif not remember:
+                cred_store.delete(profile)
+        except Exception as exc:
+            self._log_from_thread("warn", _("Keyring error: {msg}").format(msg=exc))
+        if not clear_secrets:
+            self._log_from_thread("info", _("Same credentials as the last successful connection — "
+                                            "NetworkManager's cached secrets are kept."))
+        ok, msg = self._vpn.connect(profile, username, password, clear_cached_secrets=clear_secrets)
         GLib.idle_add(self._on_connect_done, ok, msg, profile)
 
     def _on_connect_done(self, ok: bool, msg: str, profile: str):
@@ -1066,6 +1129,7 @@ class MainWindow(Gtk.ApplicationWindow):
             row.set_connecting(False)
 
         if ok:
+            self._last_creds[profile] = getattr(self, "_pending_creds_hash", None)
             self._state = self._STATE_FINISHING
             self._set_button(_("CONNECTED"), secondary=True, sensitive=False)
             self._steps.set_done()
@@ -1240,8 +1304,8 @@ class MainWindow(Gtk.ApplicationWindow):
         if self._loading:
             return
         if not btn.get_active() and self._selected_profile:
-            cred_store.delete(self._selected_profile)
             config.unmark_creds_saved(self._selected_profile)
+            threading.Thread(target=cred_store.delete, args=(self._selected_profile,), daemon=True).start()
 
     # ── Window hide / show ────────────────────────────────────────────────── #
 

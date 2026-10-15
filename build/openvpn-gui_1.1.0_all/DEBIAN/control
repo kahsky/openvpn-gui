@@ -3,7 +3,7 @@ Version: 1.1.0
 Section: net
 Priority: optional
 Architecture: all
-Installed-Size: 536
+Installed-Size: 540
 Depends: python3 (>= 3.10),
  python3-gi,
  python3-gi-cairo,

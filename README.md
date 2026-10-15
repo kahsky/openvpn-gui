@@ -1,7 +1,59 @@
 # OpenVPN GUI — by Dukiwi
 
-A modern, secure, GTK3-based OpenVPN client for Linux Mint 22.x / Ubuntu 24.x,
+A modern, secure, GTK3-based OpenVPN client for **Linux Mint 22** and **Ubuntu 24.04+**,
 created by **[Dukiwi](https://dukiwi.com)** and styled in Dukiwi blue (`#013861`).
+Define the server yourself (host, port, user, password), watch a live traffic view once connected,
+and follow exactly what happens during the connection with the verbose log.
+
+![OpenVPN GUI by Dukiwi — settings, connection animation with verbose log, live traffic view](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui.png?v=92732302)
+
+## Installation
+
+### Linux Mint 22 and Ubuntu 24.04+ (signed Dukiwi APT repository, automatic updates)
+
+The `noble` suite serves all these versions. It is the same Dukiwi repository as
+[ClamAV Antivirus GUI](https://github.com/kahsky/clamav-antivirus): if you already added it,
+`sudo apt install openvpn-gui` is enough.
+
+```bash
+sudo mkdir -p /usr/share/keyrings
+curl -fsSL https://www.dukiwi.com/repo/apt/dukiwi-clamav.gpg | sudo tee /usr/share/keyrings/dukiwi-clamav.gpg > /dev/null
+echo "deb [signed-by=/usr/share/keyrings/dukiwi-clamav.gpg] https://www.dukiwi.com/repo/apt noble main" | sudo tee /etc/apt/sources.list.d/dukiwi-clamav.list
+sudo apt update && sudo apt install -y openvpn-gui
+```
+
+Updates then arrive through the Mint Update Manager or Ubuntu Software, like any other package.
+
+### Direct download
+
+- Mint / Ubuntu: [openvpn-gui_1.1.0_all.deb](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui_1.1.0_all.deb)
+- All versions: [www.dukiwi.com/repo/openvpn-gui](https://www.dukiwi.com/repo/index.php?path=openvpn-gui)
+
+### Install a downloaded package by hand
+
+```bash
+sudo apt install ./openvpn-gui_1.1.0_all.deb     # apt resolves all dependencies
+```
+
+### Build the .deb yourself from source
+
+```bash
+git clone https://github.com/kahsky/openvpn-gui.git
+cd openvpn-gui
+./build_deb.sh              # no root required (fakeroot)
+sudo apt install ./build/openvpn-gui_1.1.0_all.deb
+# or build and install in one step:
+./build_deb.sh --install
+```
+
+### Uninstall
+
+```bash
+sudo apt remove openvpn-gui
+sudo apt purge openvpn-gui      # also removes the configuration
+```
+
+---
 
 ## Features
 
@@ -14,7 +66,8 @@ created by **[Dukiwi](https://dukiwi.com)** and styled in Dukiwi blue (`#013861`
   (Preparing → Authenticating → Establishing tunnel → Configuring network). *See more* reveals a
   **verbose log** showing exactly what happens: every `nmcli` command, NetworkManager VPN states and
   the live NetworkManager / OpenVPN journal output. Copy-to-clipboard for support tickets.
-- **Cancel** a connection in progress; failures show an inline error with a *Details* button.
+- **Cancel** a connection in progress; failures show an inline error with a *Details* button, and a
+  wrong password is reported immediately (`AUTH_FAILED`) instead of after NetworkManager's 60 s timeout.
 - **One-click import** — browse for `.ovpn` config files.
 - **Secure credentials** — username & password stored in GNOME Keyring (never plain text on disk).
 - **Multiple profiles** — manage as many VPN profiles as you need.
@@ -49,55 +102,12 @@ NetworkManager profile when you leave a field or press **CONNECT**.
 | Component | Version |
 |---|---|
 | Linux Mint | 21.x / 22.x |
-| Ubuntu | 22.04 / 24.04 |
+| Ubuntu | 22.04 / 24.04 / 26.04 |
 | Python | 3.10+ |
 | NetworkManager + network-manager-openvpn | any recent |
 
 > The verbose log reads the system journal. To see NetworkManager / OpenVPN lines your user must
 > be in the `adm` or `systemd-journal` group (default for the first user on Mint/Ubuntu).
-
----
-
-## Installation (recommended — via .deb)
-
-### Method 1 — download the pre-built package
-
-```bash
-# Download the latest release
-wget https://dukiwi.com/repo/openvpn-gui/openvpn-gui_1.1.0_all.deb
-
-# Install (apt resolves all dependencies automatically)
-sudo apt install ./openvpn-gui_1.1.0_all.deb
-```
-
-> **All packages directory:** https://dukiwi.com/repo/index.php?path=openvpn-gui
-
-### Method 2 — build the .deb yourself from source
-
-```bash
-git clone https://github.com/kahsky/openvpn-gui.git
-cd openvpn-gui
-
-# Build the .deb (no root required)
-./build_deb.sh
-
-# Install (apt handles all dependencies)
-sudo apt install ./build/openvpn-gui_1.1.0_all.deb
-```
-
-Or build and install in one step:
-
-```bash
-./build_deb.sh --install
-```
-
-### Uninstall
-
-```bash
-sudo apt remove openvpn-gui
-# Full purge (removes config too):
-sudo apt purge openvpn-gui
-```
 
 ---
 
@@ -154,13 +164,9 @@ assets/
 ├── icon_connecting.svg     — Navy shield with dots (tray: connecting)
 ├── icon_disconnected.svg   — Grey shield (tray: VPN down)
 └── logo_dukiwi.png         — Dukiwi word-mark (sidebar footer, About box)
-```
 
-**Build script:**
-
-```
-build_deb.sh  — builds a self-contained .deb with all metadata
-                works as regular user (fakeroot) or as root
+openvpn-gui.png   — README hero image (served from https://www.dukiwi.com/repo/openvpn-gui/)
+build_deb.sh      — builds a self-contained .deb (fakeroot or root)
 ```
 
 ---
@@ -172,7 +178,7 @@ build_deb.sh  — builds a self-contained .deb with all metadata
 | Import | `nmcli connection import type openvpn file X.ovpn` |
 | Manual profile | `nmcli connection add type vpn vpn-type openvpn con-name NAME vpn.data "connection-type=password, remote=HOST:PORT:PROTO, …"` |
 | Change host/port | `nmcli connection modify NAME +vpn.data "remote=HOST:PORT:PROTO" +vpn.data "port=PORT" +vpn.data "proto-tcp=yes/no"` |
-| Connect | `nmcli --wait 60 connection up NAME passwd-file /dev/stdin` (secrets piped on stdin) |
+| Connect | D-Bus `Settings.Connection.ClearSecrets`, then `nmcli --wait 60 connection up NAME passwd-file /dev/stdin` (secrets piped on stdin) |
 | Progress | `nmcli -t connection show --active NAME` (VPN.VPN-STATE) + `journalctl -f` (NetworkManager, nm-openvpn) |
 | Traffic | `/sys/class/net/tunX/statistics/{rx,tx}_bytes`, sampled every second |
 | Disconnect / cancel | `nmcli connection down NAME` |
@@ -181,22 +187,25 @@ build_deb.sh  — builds a self-contained .deb with all metadata
 
 - Credentials are stored **exclusively** in the system keyring (libsecret / GNOME Keyring).
 - When connecting, the password is piped to `nmcli` via **stdin** — it is never written to disk,
-  to a temp file, or to the verbose log.
+  to a temp file, or to the verbose log. NetworkManager's cached copy of a previous password is
+  cleared first, so the password you typed is the one used.
 - VPN profiles are managed by NetworkManager, stored in `/etc/NetworkManager/system-connections/`
   with root-only read permissions. CA certificates of manual profiles are copied to
   `~/.cert/nm-openvpn/` (mode 600), like nmcli's own importer does.
+- Packages are signed: the APT repository index is signed with the Dukiwi key, and each `.deb` in
+  the repository comes with a `.sha256` file and a signed `manifest.json`.
 
 ---
 
 ## Releases
 
 Pre-built `.deb` packages are available at:
-**https://dukiwi.com/repo/index.php?path=openvpn-gui**
+**https://www.dukiwi.com/repo/index.php?path=openvpn-gui**
 
 | Version | Download | Highlights |
 |---|---|---|
-| 1.1.0 | [openvpn-gui_1.1.0_all.deb](https://dukiwi.com/repo/openvpn-gui/openvpn-gui_1.1.0_all.deb) | Manual host/port/user/password, live traffic view, connection animation + verbose log, Dukiwi theme, French UI |
-| 1.0.1 | [openvpn-gui_1.0.1_all.deb](https://dukiwi.com/repo/openvpn-gui/openvpn-gui_1.0.1_all.deb) | Initial release |
+| 1.1.0 | [openvpn-gui_1.1.0_all.deb](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui_1.1.0_all.deb) | Manual host/port/user/password, live traffic view, connection animation + verbose log, Dukiwi theme, French UI, APT repository |
+| 1.0.1 | [openvpn-gui_1.0.1_all.deb](https://www.dukiwi.com/repo/openvpn-gui/openvpn-gui_1.0.1_all.deb) | Initial release |
 
 ---
 
